@@ -110,11 +110,19 @@ public class PortForwardServerConnection extends AbstractServerConnection {
     protected void setConnectListener(HttpUpgradeListener connectListener) {
     }
 
-    public void startForwarding(final ClientConnection clientConnection, final String urlPath, final int targetPort, final int requestId) throws IOException {
+    public void connect(final ClientConnection clientConnection, final String urlPath, final int targetPort, final int requestId) throws IOException {
         try {
             // initiate the streams
             openErrorStream(clientConnection, urlPath, targetPort, requestId);
             openDataStream(clientConnection, urlPath, targetPort, requestId);
+        } catch (Exception e) {
+            IoUtils.safeClose(this);
+            throw e;
+        }
+    }
+
+    public void serve() throws IOException {
+        try {
             try {
                 /*
                  * wait for the request to complete. this will trigger when the
@@ -220,17 +228,17 @@ public class PortForwardServerConnection extends AbstractServerConnection {
                     @Override
                     public void completed(final ClientExchange result) {
                         result.getResponseChannel().getCloseSetter().set(new LatchReleaseChannelListener(requestComplete));
-                        getIoThread().execute(new Runnable() {
-                            @Override
-                            public void run() {
+//                        getIoThread().execute(new Runnable() {
+//                            @Override
+//                            public void run() {
                                 // read from remote
                                 ChannelUtils.initiateTransfer(
                                         Long.MAX_VALUE,
                                         result.getResponseChannel(),
                                         getChannel().getSinkChannel(),
                                         getBufferPool());
-                            }
-                        });
+//                            }
+//                        });
                     }
 
                     @Override

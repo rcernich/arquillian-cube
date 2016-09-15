@@ -8,6 +8,7 @@ import io.undertow.client.ClientConnection;
 import io.undertow.client.ClientExchange;
 import io.undertow.client.ClientRequest;
 import io.undertow.client.UndertowClient;
+import io.undertow.client.spdy.SpdyClientConnection;
 import io.undertow.connector.ByteBufferPool;
 import io.undertow.protocols.spdy.SpdyChannel;
 import io.undertow.protocols.spdy.SpdyChannelWithoutFlowControl;
@@ -208,7 +209,7 @@ public final class PortForwarder implements Closeable {
             if (idleTimeout != null && idleTimeout > 0) {
                 spdyChannel.setIdleTimeout(idleTimeout);
             }
-            connection = new PortForwarderSpdyClientConnection(spdyChannel, null);
+            connection = new SpdyClientConnection(spdyChannel, null);
         } else {
             throw new IOException("Failed to upgrade connection");
         }

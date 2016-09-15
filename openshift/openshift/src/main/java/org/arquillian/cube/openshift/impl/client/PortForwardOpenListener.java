@@ -13,9 +13,11 @@ import io.undertow.server.OpenListener;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.undertow.server.XnioByteBufferPool;
+
 import org.xnio.IoUtils;
 import org.xnio.OptionMap;
 import org.xnio.Options;
@@ -51,7 +53,7 @@ public class PortForwardOpenListener implements OpenListener {
     }
 
     @Override
-    public void handleEvent(StreamConnection channel) {
+    public synchronized void handleEvent(StreamConnection channel) {
         //set read and write timeouts
         try {
             Integer readTimeout = channel.getOption(Options.READ_TIMEOUT);
@@ -78,18 +80,28 @@ public class PortForwardOpenListener implements OpenListener {
             UndertowLogger.REQUEST_IO_LOGGER.ioException(e);
         }
 
+        final CountDownLatch connectLatch = new CountDownLatch(1);
         final PortForwardServerConnection connection = new PortForwardServerConnection(channel, bufferPool, undertowOptions, bufferSize);
         connection.getWorker().execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    connection.startForwarding(masterPortForwardConnection, urlPath, targetPort, requestId.getAndIncrement());
+                    try {
+                        connection.connect(masterPortForwardConnection, urlPath, targetPort, requestId.getAndIncrement());
+                    } finally {
+                        connectLatch.countDown();
+                    }
+                    connection.serve();
                 } catch (IOException e) {
                 } finally {
                     IoUtils.safeClose(connection);
                 }
             }
         });
+        try {
+            connectLatch.await();
+        } catch (InterruptedException e) {
+        }
     }
 
     @Override
