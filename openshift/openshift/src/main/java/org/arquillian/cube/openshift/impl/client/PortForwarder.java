@@ -8,7 +8,6 @@ import io.undertow.client.ClientConnection;
 import io.undertow.client.ClientExchange;
 import io.undertow.client.ClientRequest;
 import io.undertow.client.UndertowClient;
-import io.undertow.client.spdy.SpdyClientConnection;
 import io.undertow.connector.ByteBufferPool;
 import io.undertow.protocols.spdy.SpdyChannel;
 import io.undertow.protocols.spdy.SpdyChannelWithoutFlowControl;
@@ -34,7 +33,6 @@ import javax.net.ssl.X509TrustManager;
 
 import org.xnio.BufferAllocator;
 import org.xnio.ByteBufferSlicePool;
-import org.xnio.ChannelExceptionHandler;
 import org.xnio.ChannelListener;
 import org.xnio.ChannelListeners;
 import org.xnio.IoFuture;
@@ -46,7 +44,6 @@ import org.xnio.StreamConnection;
 import org.xnio.Xnio;
 import org.xnio.XnioWorker;
 import org.xnio.channels.AcceptingChannel;
-import org.xnio.channels.StreamSinkChannel;
 import org.xnio.ssl.XnioSsl;
 
 public final class PortForwarder implements Closeable {
@@ -211,7 +208,7 @@ public final class PortForwarder implements Closeable {
             if (idleTimeout != null && idleTimeout > 0) {
                 spdyChannel.setIdleTimeout(idleTimeout);
             }
-            connection = new SpdyClientConnection(spdyChannel, null);
+            connection = new PortForwarderSpdyClientConnection(spdyChannel, null);
         } else {
             throw new IOException("Failed to upgrade connection");
         }
